@@ -1,0 +1,410 @@
+import React, { useState } from 'react';
+import { 
+  Mic, Headphones, Speaker, Keyboard, Monitor, Laptop, 
+  Sliders, Music, DollarSign, Box, Layers, Settings, 
+  ChevronRight, RotateCcw, CheckCircle2, Cpu, Zap
+} from 'lucide-react';
+
+// ==========================================
+// DATA MODULE (Easily extractable for Electron)
+// ==========================================
+const gearDB = {
+  interfaces: [
+    { name: "M-Audio M-Track Solo", budget: ["ultra_low", "low"], vibe: "digital", price: 49, desc: "Basic, ultra-affordable interface to get your mic and instruments into your computer." },
+    { name: "Focusrite Scarlett Solo 4th Gen", budget: ["low"], vibe: "digital", price: 139, desc: "The absolute standard entry-level interface. Clean, reliable preamps." },
+    { name: "Universal Audio Volt 2", budget: ["medium"], vibe: "analog", price: 189, desc: "Features a vintage mic preamp mode for warm, analog-style coloration." },
+    { name: "SSL 2+", budget: ["medium"], vibe: "analog", price: 299, desc: "Includes a '4k' button to inject classic Solid State Logic analog console presence." },
+    { name: "Universal Audio Apollo Twin X", budget: ["high"], vibe: "analog", price: 999, desc: "Elite conversion with real-time UAD processing to run analog hardware emulations." },
+    { name: "RME Babyface Pro FS", budget: ["high"], vibe: "digital", price: 999, desc: "Unmatched driver stability, ultra-low latency, and crystal clear reference conversion." },
+  ],
+  monitors: [
+    { name: "None (Use Headphones)", budget: ["ultra_low"], genre: ["all"], price: 0, desc: "Skipped to save budget. Focus on learning your headphones deeply first!" },
+    { name: "PreSonus Eris E3.5", budget: ["low"], genre: ["all"], price: 100, desc: "Compact and accurate for tight spaces and general beginner mixing." },
+    { name: "Kali Audio LP-6 V2", budget: ["medium"], genre: ["all"], price: 398, desc: "Incredible 3D imaging and low-noise floor. The undisputed value king. (Pair)" },
+    { name: "Yamaha HS7", budget: ["medium"], genre: ["rock", "pop"], price: 660, desc: "The modern standard for brutally honest midrange. Great for vocal translation. (Pair)" },
+    { name: "Neumann KH 120 II", budget: ["high"], genre: ["all"], price: 1500, desc: "DSP-controlled perfection. Perfectly flat and brutally honest for pro mix engineers." },
+    { name: "Adam Audio A7V", budget: ["high"], genre: ["electronic", "hiphop"], price: 1500, desc: "Ribbon tweeters reveal extreme high-end detail. Incredible transient response." },
+  ],
+  mics: [
+    { name: "Samson Q2U (USB/XLR)", budget: ["ultra_low"], vibe: "digital", price: 70, desc: "Great starter mic that plugs right into USB, saving you interface costs initially." },
+    { name: "Audio-Technica AT2020", budget: ["low"], vibe: "digital", price: 99, desc: "A crisp, reliable condenser microphone that captures clean, uncolored vocals." },
+    { name: "Shure SM58", budget: ["ultra_low", "low"], vibe: "analog", price: 99, desc: "The legendary dynamic workhorse. Warm, indestructible, and great for untreated rooms." },
+    { name: "Rode NT1 5th Gen", budget: ["medium"], vibe: "digital", price: 249, desc: "Extremely low self-noise with a modern, bright, and radio-ready sheen." },
+    { name: "Shure SM7B", budget: ["medium"], vibe: "analog", price: 399, desc: "The broadcast and hip-hop standard. Delivers thick, warm, and intimate vocals." },
+    { name: "Neumann U87 Ai", budget: ["high"], vibe: "analog", price: 3200, desc: "The ultimate studio classic. Provides an instantly recognizable, premium vintage warmth." },
+    { name: "Sony C-800G", budget: ["high"], vibe: "digital", price: 10000, desc: "The holy grail of modern pop and rap vocals. Pure pristine top-end presence." }
+  ],
+  headphones: [
+    { name: "Audio-Technica ATH-M20x", budget: ["ultra_low", "low"], price: 49, desc: "Solid closed-back tracking headphones on a budget." },
+    { name: "Beyerdynamic DT 770 Pro", budget: ["medium"], price: 159, desc: "Industry standard closed-back headphones. Wide soundstage and deep bass." },
+    { name: "Sennheiser HD 650", budget: ["high"], price: 399, desc: "Open-back reference headphones. Incredibly natural and non-fatiguing for long mix sessions." },
+  ],
+  midi: [
+    { name: "Akai LPK25", budget: ["ultra_low"], price: 59, desc: "Ultra-compact 25-key controller, perfect for simple chord input and small desks." },
+    { name: "Akai MPK Mini Mk3", budget: ["low"], price: 99, desc: "25 keys, 8 drum pads, and endless portability for beatmakers." },
+    { name: "Arturia KeyLab Essential 49", budget: ["medium"], price: 219, desc: "49 keys with great DAW integration and an included suite of vintage synth sounds." },
+    { name: "Native Instruments Komplete Kontrol S61", budget: ["high"], price: 799, desc: "Premium Fatar keybed with high-res screens for ultimate plugin control." },
+  ],
+  daws: [
+    { name: "GarageBand / Cakewalk", budget: ["ultra_low"], os: ["mac", "windows"], genre: ["all"], price: 0, desc: "Powerful free DAWs (GarageBand on Mac, Cakewalk on PC) to get you started immediately." },
+    { name: "Reaper", budget: ["low"], os: ["mac", "windows"], genre: ["all"], price: 60, desc: "Highly customizable, incredibly lightweight, and virtually free to evaluate." },
+    { name: "FL Studio Producer", budget: ["medium", "high"], os: ["mac", "windows"], genre: ["hiphop", "electronic"], price: 199, desc: "Unbeatable piano roll and step sequencer. The absolute favorite for trap and hip-hop beats." },
+    { name: "Logic Pro", budget: ["low", "medium", "high"], os: ["mac"], genre: ["all"], price: 199, desc: "Incredible value for Mac users. Comes with a massive library of high-quality stock instruments." },
+    { name: "Ableton Live Standard", budget: ["medium", "high"], os: ["mac", "windows"], genre: ["electronic", "hiphop"], price: 439, desc: "The ultimate playground for loop-based production, sound design, and live performance." },
+    { name: "Studio One 6 Pro", budget: ["medium", "high"], os: ["mac", "windows"], genre: ["rock", "pop"], price: 399, desc: "Modern, drag-and-drop workflow that excels at recording, editing, and mixing live instruments." },
+  ],
+  plugins: [
+    { name: "Vital Synth (Free)", budget: ["ultra_low", "low"], genre: ["electronic", "pop", "hiphop"], vibe: "digital", price: 0, desc: "A phenomenally powerful wavetable synth that rivals high-end paid plugins." },
+    { name: "Analog Obsession Bundle", budget: ["ultra_low", "low"], genre: ["all"], vibe: "analog", price: 0, desc: "Incredible free analog-modeled EQs and compressors to color your sound." },
+    { name: "Valhalla Supermassive", budget: ["ultra_low", "low"], genre: ["all"], vibe: "digital", price: 0, desc: "Massive, free delays and reverbs that sound out of this world." },
+    { name: "Xfer Serum", budget: ["medium", "high"], genre: ["electronic", "pop"], vibe: "digital", price: 189, desc: "The industry standard wavetable synthesizer for modern sound design." },
+    { name: "Spectrasonics Omnisphere", budget: ["high"], genre: ["hiphop", "pop", "electronic"], vibe: "digital", price: 499, desc: "A massive powerhouse synth with thousands of cinematic and modern presets." },
+    { name: "Antares Auto-Tune Pro", budget: ["high"], genre: ["hiphop", "pop"], vibe: "digital", price: 399, desc: "The definitive pitch correction plugin for modern rap and pop vocal chains." },
+    { name: "XLN Audio RC-20 Retro Color", budget: ["medium"], genre: ["hiphop", "electronic", "pop", "rock"], vibe: "analog", price: 99, desc: "Instantly adds vintage warmth, tape wobble, and grit to sterile digital sounds." },
+    { name: "FabFilter Pro-Q 3", budget: ["high"], genre: ["all"], vibe: "digital", price: 179, desc: "The ultimate surgical EQ. Intuitive interface with dynamic EQ capabilities." },
+    { name: "UAD Spark Bundle", budget: ["medium", "high"], genre: ["rock", "pop", "hiphop"], vibe: "analog", price: 149, desc: "Native emulations of legendary analog compressors, EQs, and preamps." },
+    { name: "Valhalla VintageVerb", budget: ["medium"], genre: ["all"], vibe: "digital", price: 50, desc: "Lush, algorithmic reverb inspired by classic 1970s and 1980s hardware." },
+  ]
+};
+
+// ==========================================
+// LOGIC MODULE
+// ==========================================
+const generateRecommendation = (prefs) => {
+  const isMatch = (item, prop, val) => !item[prop] || item[prop].includes(val) || item[prop].includes('all');
+
+  // 1. Audio Interface
+  let iface = gearDB.interfaces.find(i => i.budget.includes(prefs.budget) && i.vibe === prefs.vibe);
+  if (!iface) iface = gearDB.interfaces.find(i => i.budget.includes(prefs.budget));
+
+  // If using a USB Mic on ultra_low budget, optionally skip interface
+  if (prefs.budget === "ultra_low" && gearDB.mics.find(m => m.name.includes("USB"))) {
+      // Keep cheap interface if they want, or we can let the UI show the $49 one.
+  }
+
+  // 2. Monitors
+  let monitor = gearDB.monitors.find(m => m.budget.includes(prefs.budget) && isMatch(m, 'genre', prefs.genre));
+  if (!monitor) monitor = gearDB.monitors.find(m => m.budget.includes(prefs.budget));
+
+  // 3. Microphone
+  let mic = gearDB.mics.find(m => m.budget.includes(prefs.budget) && m.vibe === prefs.vibe);
+  if (!mic) mic = gearDB.mics.find(m => m.budget.includes(prefs.budget));
+
+  // 4. Headphones & MIDI
+  let hp = gearDB.headphones.find(h => h.budget.includes(prefs.budget));
+  let midi = gearDB.midi.find(m => m.budget.includes(prefs.budget));
+
+  // 5. DAW
+  let dawOptions = gearDB.daws.filter(d => d.budget.includes(prefs.budget) && d.os.includes(prefs.os) && isMatch(d, 'genre', prefs.genre));
+  if (dawOptions.length === 0) dawOptions = gearDB.daws.filter(d => d.budget.includes(prefs.budget) && d.os.includes(prefs.os));
+  let daw = dawOptions[0] || gearDB.daws[0];
+
+  // 6. Plugins (Pick up to 3 suitable ones)
+  let pluginList = gearDB.plugins.filter(p => p.budget.includes(prefs.budget) && isMatch(p, 'genre', prefs.genre) && (p.vibe === prefs.vibe || p.vibe === 'digital')); // 'digital' acts as a safe fallback for analog vibe searches if limited
+  if (pluginList.length < 3) {
+      const others = gearDB.plugins.filter(p => p.budget.includes(prefs.budget) && !pluginList.includes(p));
+      pluginList = [...pluginList, ...others];
+  }
+  pluginList = pluginList.slice(0, 3);
+
+  // Special Edge Case: Ultra Low Budget with USB Mic shouldn't double charge for an interface
+  if (prefs.budget === "ultra_low" && mic?.name.includes("USB")) {
+      iface = { name: "None Needed", price: 0, desc: "Your USB mic handles the audio conversion! Saves you money." };
+  }
+
+  const totalCost = 
+    (iface?.price || 0) + 
+    (monitor?.price || 0) + 
+    (mic?.price || 0) + 
+    (hp?.price || 0) + 
+    (midi?.price || 0) + 
+    (daw?.price || 0) + 
+    pluginList.reduce((sum, p) => sum + (p.price || 0), 0);
+
+  return { interface: iface, monitor, mic, hp, midi, daw, plugins: pluginList, totalCost };
+};
+
+// ==========================================
+// UI COMPONENTS
+// ==========================================
+export default function App() {
+  const [step, setStep] = useState(0);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [results, setResults] = useState(null);
+  const [prefs, setPrefs] = useState({
+    budget: '',
+    os: '',
+    genre: '',
+    vibe: ''
+  });
+
+  const handleSelect = (key, value) => {
+    setPrefs({ ...prefs, [key]: value });
+    if (step < 4) {
+      setStep(step + 1);
+    } else {
+      processResults({ ...prefs, [key]: value });
+    }
+  };
+
+  const processResults = (finalPrefs) => {
+    setIsProcessing(true);
+    setTimeout(() => {
+      setResults(generateRecommendation(finalPrefs));
+      setIsProcessing(false);
+      setStep(5);
+    }, 1200);
+  };
+
+  const resetQuiz = () => {
+    setPrefs({ budget: '', os: '', genre: '', vibe: '' });
+    setResults(null);
+    setStep(0);
+  };
+
+  // UI Step Definitions
+  const steps = [
+    {
+      id: "intro",
+      title: "Find Your Perfect Studio",
+      desc: "Answer 4 quick questions and we'll engineer the perfect home studio setup for your music, taste, and budget.",
+      content: (
+        <button 
+          onClick={() => setStep(1)}
+          className="w-full sm:w-auto px-8 py-4 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl shadow-lg shadow-indigo-500/30 transition-all flex items-center justify-center gap-2 mx-auto"
+        >
+          Start Building <ChevronRight size={20} />
+        </button>
+      )
+    },
+    {
+      id: "budget",
+      title: "What's your total budget limit?",
+      desc: "We calculate the exact total to ensure we never go over your limit.",
+      content: (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-3xl mx-auto">
+          <SelectionCard icon={<DollarSign/>} title="Bedroom / Micro" desc="Under $300 (Strictly Budget)" onClick={() => handleSelect('budget', 'ultra_low')} />
+          <SelectionCard icon={<Box/>} title="Starter" desc="$300 - $600" onClick={() => handleSelect('budget', 'low')} />
+          <SelectionCard icon={<Layers/>} title="Producer" desc="$600 - $1,500" onClick={() => handleSelect('budget', 'medium')} />
+          <SelectionCard icon={<Zap/>} title="Pro Studio" desc="$1,500+" onClick={() => handleSelect('budget', 'high')} />
+        </div>
+      )
+    },
+    {
+      id: "os",
+      title: "Mac or Windows?",
+      desc: "This helps us select the best DAW and interface drivers.",
+      content: (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl mx-auto">
+          <SelectionCard icon={<Laptop/>} title="Mac" desc="macOS / Apple Silicon" onClick={() => handleSelect('os', 'mac')} />
+          <SelectionCard icon={<Monitor/>} title="Windows" desc="Windows 10/11" onClick={() => handleSelect('os', 'windows')} />
+        </div>
+      )
+    },
+    {
+      id: "genre",
+      title: "What's your primary genre?",
+      desc: "We'll tailor monitors, mics, and software to your style.",
+      content: (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-3xl mx-auto">
+          <SelectionCard icon={<Cpu/>} title="Electronic / EDM" desc="House, Techno, Bass" onClick={() => handleSelect('genre', 'electronic')} />
+          <SelectionCard icon={<Mic/>} title="Hip Hop / Rap" desc="Trap, Boom Bap, R&B" onClick={() => handleSelect('genre', 'hiphop')} />
+          <SelectionCard icon={<Music/>} title="Pop / Vocal" desc="Modern Pop, Singer" onClick={() => handleSelect('genre', 'pop')} />
+          <SelectionCard icon={<Speaker/>} title="Rock / Acoustic" desc="Guitars, Live Bands" onClick={() => handleSelect('genre', 'rock')} />
+        </div>
+      )
+    },
+    {
+      id: "vibe",
+      title: "What's your preferred workflow?",
+      desc: "Do you want vintage character or pristine surgical precision?",
+      content: (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl mx-auto">
+          <SelectionCard icon={<Sliders/>} title="Analog Warmth" desc="Character, tape, tubes, vintage vibe" onClick={() => handleSelect('vibe', 'analog')} />
+          <SelectionCard icon={<Settings/>} title="Digital Precision" desc="Clean, transparent, surgical, modern" onClick={() => handleSelect('vibe', 'digital')} />
+        </div>
+      )
+    }
+  ];
+
+  return (
+    <div className="min-h-screen bg-slate-950 text-slate-100 font-sans selection:bg-indigo-500/30">
+      
+      {/* Header */}
+      <header className="py-6 px-4 md:px-8 border-b border-slate-800 bg-slate-900/50 sticky top-0 z-10 backdrop-blur-md">
+        <div className="max-w-6xl mx-auto flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="bg-indigo-500 p-2 rounded-lg">
+              <Headphones size={24} className="text-white" />
+            </div>
+            <h1 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 to-purple-400">
+              StudioArchitect
+            </h1>
+          </div>
+          {step > 0 && step < 5 && (
+            <div className="text-sm font-medium text-slate-400">
+              Step {step} of 4
+            </div>
+          )}
+        </div>
+      </header>
+
+      {/* Main Content */}
+      <main className="px-4 py-12 md:py-20 max-w-6xl mx-auto">
+        
+        {/* Quiz Section */}
+        {step < 5 && !isProcessing && (
+          <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div className="text-center space-y-4 mb-12">
+              <h2 className="text-4xl md:text-5xl font-extrabold tracking-tight px-2">
+                {steps[step].title}
+              </h2>
+              <p className="text-lg text-slate-400 max-w-2xl mx-auto px-4">
+                {steps[step].desc}
+              </p>
+            </div>
+            {steps[step].content}
+            
+            {/* Progress Bar */}
+            {step > 0 && (
+              <div className="mt-12 max-w-md mx-auto px-4">
+                <div className="h-2 w-full bg-slate-800 rounded-full overflow-hidden">
+                  <div 
+                    className="h-full bg-indigo-500 transition-all duration-500 ease-out"
+                    style={{ width: `${(step / 4) * 100}%` }}
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Loading State */}
+        {isProcessing && (
+          <div className="text-center py-20 space-y-6 animate-in fade-in duration-300">
+            <div className="relative w-24 h-24 mx-auto">
+              <div className="absolute inset-0 rounded-full border-t-2 border-indigo-500 animate-spin"></div>
+              <div className="absolute inset-2 rounded-full border-r-2 border-purple-500 animate-spin" style={{ animationDirection: 'reverse', animationDuration: '1.5s' }}></div>
+              <Headphones className="absolute inset-0 m-auto text-indigo-400" size={32} />
+            </div>
+            <h3 className="text-2xl font-bold">Engineering your setup...</h3>
+            <p className="text-slate-400">Ensuring gear stays within your budget limit.</p>
+          </div>
+        )}
+
+        {/* Results Section */}
+        {step === 5 && results && (
+          <div className="space-y-12 animate-in fade-in slide-in-from-bottom-8 duration-700">
+            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 border-b border-slate-800 pb-8">
+              <div>
+                <h2 className="text-3xl md:text-4xl font-extrabold mb-4">Your Custom Studio Build</h2>
+                <div className="flex flex-wrap items-center gap-3 text-sm text-slate-400">
+                  <span className="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-3 py-1.5 rounded-full font-bold shadow-[0_0_10px_rgba(16,185,129,0.2)]">
+                    Est. Total: ${results.totalCost}
+                  </span>
+                  <span className="bg-slate-800 px-3 py-1.5 rounded-full capitalize">
+                    {prefs.budget.replace('_', ' ')} Budget
+                  </span>
+                  <span className="bg-slate-800 px-3 py-1.5 rounded-full capitalize">{prefs.os}</span>
+                  <span className="bg-slate-800 px-3 py-1.5 rounded-full capitalize">{prefs.genre}</span>
+                  <span className="bg-slate-800 px-3 py-1.5 rounded-full capitalize">{prefs.vibe} Vibe</span>
+                </div>
+              </div>
+              <button 
+                onClick={resetQuiz}
+                className="flex items-center gap-2 px-6 py-3 bg-slate-800 hover:bg-slate-700 rounded-lg font-medium transition-colors whitespace-nowrap w-full md:w-auto justify-center"
+              >
+                <RotateCcw size={18} /> Start Over
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {/* Hardware */}
+              <ResultCard icon={<Monitor/>} category="Audio Interface" data={results.interface} />
+              <ResultCard icon={<Speaker/>} category="Studio Monitors" data={results.monitor} />
+              <ResultCard icon={<Mic/>} category="Microphone" data={results.mic} />
+              <ResultCard icon={<Headphones/>} category="Headphones" data={results.hp} />
+              <ResultCard icon={<Keyboard/>} category="MIDI Controller" data={results.midi} />
+              
+              {/* Software */}
+              <div className="lg:col-span-1 md:col-span-2 row-span-2 flex flex-col gap-6">
+                 <ResultCard icon={<Laptop/>} category="DAW (Digital Audio Workstation)" data={results.daw} highlighted />
+                 
+                 <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 h-full shadow-xl">
+                   <div className="flex items-center justify-between mb-6">
+                     <div className="flex items-center gap-3 text-indigo-400">
+                       <Layers size={24} />
+                       <h3 className="font-bold uppercase tracking-wider text-sm">Essential Plugins</h3>
+                     </div>
+                     <span className="text-emerald-400 font-mono font-bold bg-emerald-400/10 px-2 py-1 rounded-md text-sm">
+                        ${results.plugins.reduce((sum, p) => sum + p.price, 0)}
+                     </span>
+                   </div>
+                   
+                   <ul className="space-y-5">
+                     {results.plugins.map((plugin, idx) => (
+                       <li key={idx} className="flex items-start gap-3">
+                         <CheckCircle2 size={18} className="text-emerald-500 mt-1 flex-shrink-0" />
+                         <div className="flex-1">
+                           <div className="flex justify-between items-start">
+                             <p className="font-bold text-slate-100">{plugin.name}</p>
+                             <span className="text-emerald-400 font-mono text-sm ml-2">
+                               {plugin.price === 0 ? "Free" : `$${plugin.price}`}
+                             </span>
+                           </div>
+                           <p className="text-sm text-slate-400 mt-1">{plugin.desc}</p>
+                         </div>
+                       </li>
+                     ))}
+                   </ul>
+                 </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+      </main>
+    </div>
+  );
+}
+
+// ==========================================
+// UTILITY COMPONENTS
+// ==========================================
+function SelectionCard({ icon, title, desc, onClick }) {
+  return (
+    <button 
+      onClick={onClick}
+      className="group flex flex-col items-center text-center p-8 bg-slate-900 border border-slate-800 rounded-2xl hover:border-indigo-500 hover:bg-slate-800/50 transition-all cursor-pointer shadow-lg w-full"
+    >
+      <div className="text-indigo-400 mb-4 group-hover:scale-110 group-hover:text-indigo-300 transition-transform duration-300">
+        {React.cloneElement(icon, { size: 48, strokeWidth: 1.5 })}
+      </div>
+      <h3 className="text-xl font-bold mb-2 text-slate-100">{title}</h3>
+      <p className="text-slate-400 text-sm leading-relaxed">{desc}</p>
+    </button>
+  );
+}
+
+function ResultCard({ icon, category, data, highlighted = false }) {
+  if (!data) return null;
+  
+  return (
+    <div className={`p-6 rounded-2xl border flex flex-col shadow-xl transition-all h-full
+      ${highlighted 
+        ? 'bg-gradient-to-br from-slate-900 to-indigo-950/30 border-indigo-500/50' 
+        : 'bg-slate-900 border-slate-800 hover:border-slate-600'}`}>
+      <div className={`flex items-center justify-between mb-4 ${highlighted ? 'text-indigo-400' : 'text-slate-400'}`}>
+        <div className="flex items-center gap-3">
+          {React.cloneElement(icon, { size: 20 })}
+          <h3 className="font-bold uppercase tracking-wider text-sm">{category}</h3>
+        </div>
+        <span className={`font-mono font-bold px-2 py-1 rounded-md text-sm ${data.price === 0 ? 'text-indigo-400 bg-indigo-400/10' : 'text-emerald-400 bg-emerald-400/10'}`}>
+          {data.price === 0 ? "Free" : `$${data.price}`}
+        </span>
+      </div>
+      <h4 className="text-xl font-bold text-white mb-3">{data.name}</h4>
+      <p className="text-slate-400 text-sm leading-relaxed mt-auto">{data.desc}</p>
+    </div>
+  );
+}
